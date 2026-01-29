@@ -1,0 +1,62 @@
+name: 💀 CyberLexS Klinux Ultimate
+
+on: 
+  workflow_dispatch:
+    inputs:
+      duration:
+        description: 'Số giờ treo máy (Max 6)'
+        required: true
+        default: '6'
+
+jobs:
+  kali-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: 🚀 1. Tối ưu Hệ thống & Băng thông
+        run: |
+          sudo sysctl -w net.ipv4.tcp_congestion_control=bbr
+          sudo apt-get update -q
+          sudo apt-get install -y docker.io openssh-server -q
+
+      - name: 🛡️ 2. Kết nối Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          hostname: CyberLexS-Klinux
+
+      - name: 👤 3. Cấu hình Tài khoản & SSH
+        run: |
+          sudo useradd -m -s /bin/bash CyberLexS
+          echo "CyberLexS:Nam12345" | sudo chpasswd
+          sudo usermod -aG sudo CyberLexS
+          sudo sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+          sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+          sudo service ssh restart
+
+      - name: 🏴‍☠️ 4. Khởi tạo Klinux (Kali Docker)
+        run: |
+          sudo docker run -d --name klinux --network host -it kalilinux/kali-rolling /bin/bash
+          # Cài sẵn bộ công cụ mạng cơ bản cho Kali
+          sudo docker exec klinux apt-get update -y
+          sudo docker exec klinux apt-get install -y nmap curl net-tools iputils-ping -y
+
+      - name: 📋 5. XUẤT THÔNG TIN ĐĂNG NHẬP (LẤY Ở ĐÂY)
+        run: |
+          IP_ADDR=$(tailscale ip -4)
+          echo -e "\n\033[1;32m=========================================="
+          echo -e "🚀 THÔNG TIN VPS KLINUX CỦA BẠN"
+          echo -e "=========================================="
+          echo -e "📍 IP: $IP_ADDR"
+          echo -e "👤 USER: CyberLexS"
+          echo -e "🔑 PASS: Nam12345"
+          echo -e "🚪 PORT: 22"
+          echo -e "------------------------------------------"
+          echo -e "⚡ LỆNH VÀO KALI: sudo docker exec -it klinux /bin/bash"
+          echo -e "==========================================\033[0m\n"
+
+      - name: ⚓ 6. Duy trì kết nối
+        run: |
+          HOURS=${{ github.event.inputs.duration }}
+          echo "VPS đang chạy trong $HOURS giờ..."
+          sleep $((HOURS * 3600))
