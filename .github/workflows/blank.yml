@@ -1,4 +1,4 @@
-name: 💀 Klinux-Fix
+name: 💀 Klinux-Ultra-Stable
 
 on: 
   workflow_dispatch:
@@ -7,36 +7,52 @@ jobs:
   kali-run:
     runs-on: ubuntu-latest
     steps:
-      - name: 🚀 1. Setup Basic
+      - name: 🚀 1. Khởi động & Fix Environment
         run: |
-          sudo apt-get update -y
-          sudo apt-get install -y docker.io openssh-server -y
+          # Dọn dẹp các tiến trình apt đang chạy ngầm để tránh khóa file (Lock error)
+          sudo killall apt apt-get || true
+          sudo rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock*
+          sudo dpkg --configure -a
+          
+          # Chỉ cài những thứ tối thiểu, dùng Docker có sẵn
+          sudo apt-get update -q
+          sudo apt-get install -y openssh-server -q --no-install-recommends
 
-      - name: 🛡️ 2. Connect Tailscale
+      - name: 🛡️ 2. Kết nối Tailscale
         uses: tailscale/github-action@v2
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
           hostname: CyberLexS-Klinux
 
-      - name: 👤 3. User Info
+      - name: 👤 3. Cấu hình Tài khoản
         run: |
           sudo useradd -m -s /bin/bash CyberLexS
           echo "CyberLexS:Nam12345" | sudo chpasswd
           sudo usermod -aG sudo CyberLexS
+          # Cho phép SSH bằng mật khẩu
+          sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
           sudo service ssh restart
 
-      - name: 🏴‍☠️ 4. Start Kali
+      - name: 🏴‍☠️ 4. Chạy Klinux (Kali Rolling)
         run: |
+          # Kiểm tra nếu Docker chưa chạy thì khởi động nó
+          sudo systemctl start docker || true
+          # Chạy Kali Linux
           sudo docker run -d --name klinux --network host -it kalilinux/kali-rolling /bin/bash
+          # Cài công cụ cơ bản bên trong Kali
+          sudo docker exec klinux apt-get update -y
+          sudo docker exec klinux apt-get install -y nmap curl iputils-ping -y
 
-      - name: 📋 5. DISPLAY INFO
+      - name: 📋 5. XUẤT THÔNG TIN (LẤY TẠI ĐÂY)
         run: |
           IP_ADDR=$(tailscale ip -4)
-          echo "=========================================="
-          echo "📍 IP: $IP_ADDR"
-          echo "👤 USER: CyberLexS"
-          echo "🔑 PASS: Nam12345"
-          echo "=========================================="
+          echo -e "\n\033[1;32m=========================================="
+          echo -e "✅ VPS ĐÃ SẴN SÀNG - KHÔNG LỖI"
+          echo -e "📍 IP: $IP_ADDR"
+          echo -e "👤 USER: CyberLexS"
+          echo -e "🔑 PASS: Nam12345"
+          echo -e "⚡ VÀO KALI: sudo docker exec -it klinux /bin/bash"
+          echo -e "==========================================\033[0m\n"
 
-      - name: ⚓ 6. Keep Alive
+      - name: ⚓ 6. Treo máy (6 Giờ)
         run: sleep 21600
